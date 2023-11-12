@@ -42,7 +42,7 @@ static inline void simPrint(FILE* fp, const uint sim_value) {
 
 #define SAVE(NAME, LENGTH) {\
     char save_path[128];\
-    sprintf(save_path, "%s.out", TRACE_PATH);\
+    sprintf(save_path, "%s.stdout", TRACE_PATH);\
     FILE* save_fp = fopen(save_path, "w");\
     OUTPLOT_HELPER(NAME, LENGTH, save_fp);\
     if (save_fp) fclose(save_fp);\

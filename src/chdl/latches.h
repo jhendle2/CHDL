@@ -99,4 +99,48 @@ NEW_GATE(
     )
 )
 
+NEW_GATE(
+    NAME(DOUBLE_D_LATCH),
+
+    FIELDS(
+        NEW_BIT(data);
+        NEW_BIT(enable);
+        NEW_BIT(q);
+        NEW_BIT(q_inv);
+    ),
+    
+    INIT(
+        self->data  =UNDEF;
+        self->enable=UNDEF;
+        self->q     =UNDEF;
+        self->q_inv =UNDEF;
+    ),
+
+    BODY(
+        /***************************/
+        STATIC(D_LATCH, d_latch_0);
+        STATIC(D_LATCH, d_latch_1);
+        
+        /***************************/
+        d_latch_0.data   = self->data;
+        d_latch_0.enable = self->enable;
+        PROCESS(d_latch_0);
+
+        // ASSIGN(self->q, xnor_q.q);
+        d_latch_1.data   = d_latch_0.q;
+        d_latch_1.enable = self->enable;
+        PROCESS(d_latch_1);
+
+        ASSIGN(self->q, d_latch_1.q);
+        ASSIGN(self->q_inv, d_latch_1.q_inv);
+    ),
+
+    LOG(
+        INPUT(data);
+        INPUT(enable);
+        OUTPUT(q);
+        OUTPUT(q_inv);
+    )
+)
+
 #endif /* LATCHES_H */
