@@ -1,0 +1,46 @@
+D,E
+
+# Nothing yet
+0,0
+0,0
+0,0
+0,0
+
+# Enable and write 1
+1,1
+0,0
+0,0
+0,0
+
+0,0
+0,0
+0,0
+0,0
+
+# Enable and write 0
+0,1
+0,0
+0,0
+0,0
+
+0,0
+0,0
+0,0
+0,0
+
+# Try and write a 1 but enable is off
+1,0
+0,0
+0,0
+0,0
+
+0,0
+0,0
+0,0
+0,0
+
+# Enable and write 1
+1,1
+0,0
+0,0
+0,0
