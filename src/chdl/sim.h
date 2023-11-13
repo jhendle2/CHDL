@@ -82,7 +82,7 @@ static inline SimTime load_from_trace(uint trace_array[64][64], const char* trac
 
     SimTime clk = 0;
     char buf[256];
-    fgets(buf, 128, trace_fp); /* Skips label row */
+    // fgets(buf, 128, trace_fp); /* Skips label row */
 
     while (fgets(buf, 128, trace_fp) != NULL) {
         const uint len = strlen(buf);
@@ -92,6 +92,7 @@ static inline SimTime load_from_trace(uint trace_array[64][64], const char* trac
         char* tok = strtok(buf, ",");
         uint field_index = 0;
         while (tok) {
+            while (tok[0]==' ') tok++; /* Ignore leading whitespace in tokens */
             if (tok[0]=='0' && tok[1]=='x') {
                 trace_array[field_index++][clk] = strtol(tok+2, NULL, 16);
             }
