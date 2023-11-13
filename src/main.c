@@ -1,170 +1,111 @@
 #include <stdio.h>
 
-// #include "adder_bench.h"
-#include "chdl/latches.h"
+// #include "chdl/latches.h"
 #include "chdl/clock.h"
 #include "chdl/sim.h"
 
-// TEST_BENCH(sr_latch_bench) {
-//     SR_LATCH_t sr_latch = SR_LATCH();
+NEW_GATE(
+    NAME(XOR8),
 
-//     RUN_LENGTH(max_run_length  , 64);
-//     NEW_SIM   (sr_latch_sim, max_run_length, "R", "S", "Q", "Q_inv");
-//     NEW_TRACE (sr_latch_sim, max_run_length);
-
-//     SIMULATE(64) {
-//         LOAD(sr_latch.s, sr_latch_sim_trace[0]);
-//         LOAD(sr_latch.r, sr_latch_sim_trace[1]);
-
-//         PROCESS(sr_latch);
-        
-//         PLOT(sr_latch_sim[0], sr_latch.s);
-//         PLOT(sr_latch_sim[1], sr_latch.r);
-//         PLOT(sr_latch_sim[2], sr_latch.q);
-//         PLOT(sr_latch_sim[3], sr_latch.q_inv);
-//     }
-
-//     GRAPH(sr_latch_sim, 64);
-// }
-
-TEST_BENCH(d_latch_bench) {
-    D_LATCH_t d_latch = D_LATCH();
-
-    RUN_LENGTH(max_run_length  , 64);
-    NEW_SIM   (d_latch_sim, max_run_length, "Data", "Enable", "Q", "Q_inv");
-    NEW_TRACE (d_latch_sim, max_run_length);
-
-    SIMULATE(64) {
-        LOAD(d_latch.data  , d_latch_sim_trace[0]);
-        LOAD(d_latch.enable, d_latch_sim_trace[1]);
-
-        PROCESS(d_latch);
-        
-        PLOT(d_latch_sim[0], d_latch.data);
-        PLOT(d_latch_sim[1], d_latch.enable);
-        PLOT(d_latch_sim[2], d_latch.q);
-        PLOT(d_latch_sim[3], d_latch.q_inv);
-    }
-
-    GRAPH(d_latch_sim, 64);
-    // SAVE(full_adder_0_sim, max_run_length);
-}
-
-TEST_BENCH(clock_bench) {
-    CLOCK_t clock = CLOCK();
-
-    RUN_LENGTH(max_run_length, 64);
-    NEW_SIM(clock_sim, max_run_length, "Clock");
-
-    SIMULATE(64) {
-        PROCESS(clock);
-        PLOT(clock_sim[0], clock.clock);
-    }
+    FIELDS(
+        NEW_BYTE(a);
+        NEW_BYTE(b);
+        NEW_BYTE(q);
+    ),
     
-    GRAPH(clock_sim, 64);
-}
+    INIT(
+        self->a=0;
+        self->b=0;
+        self->q=0;
+    ),
 
-TEST_BENCH(debounced_clock_bench) {
-    CLOCK_t   clock   = CLOCK();
-    D_LATCH_t d_latch = D_LATCH();
+    BODY(
+        self->q = self->a ^ self->b;
+    ),
 
-    RUN_LENGTH(max_run_length, 64);
-    NEW_SIM   (debounced_d_latch_sim, max_run_length, "Clock", "Data", "Enable", "Q", "Q_inv");
+    LOG(
+        INPUT(a);
+        INPUT(b);
+        OUTPUT(q);
+    )
+)
 
-    SIMULATE(64) {
-        PROCESS(clock);
+NEW_GATE(
+    NAME(REG8),
 
-        d_latch.data=clock.clock;
-        d_latch.enable=clock.clock;
-
-        PROCESS(d_latch);
+    FIELDS(
+        /* INPUTS */
+        NEW_BYTE(data_in);
+        NEW_BIT(enable);
+        NEW_BIT(clk);
         
-        PLOT(debounced_d_latch_sim[0], clock.clock);
-        PLOT(debounced_d_latch_sim[1], d_latch.data);
-        PLOT(debounced_d_latch_sim[2], d_latch.enable);
-        PLOT(debounced_d_latch_sim[3], d_latch.q);
-        PLOT(debounced_d_latch_sim[4], d_latch.q_inv);
+        /* OUTPUTS */
+        NEW_BYTE(data_out);
+    ),
+
+    INIT(
+        self->data_in  = 0x00;
+        self->enable   = LOW;
+        self->clk      = LOW;
+        self->data_out = 0x00;
+    ),
+
+    BODY(
+        if (self->clk == HIGH && self->enable == HIGH) {
+            self->data_out = self->data_in;
+        }
+    ),
+
+    LOG(
+        INPUT(data_in);
+        INPUT(enable);
+        INPUT(clk);
+        OUTPUT(data_out);
+    )
+)
+
+TEST_BENCH(test_bench) {
+    CLOCK_t clock = CLOCK();
+    REG8_t  reg8  = REG8();
+    REG8_t  clock2 = REG8();
+    REG8_t  clock4 = REG8();
+
+    RUN_LENGTH(max_cycles, 64 cycles);
+    NEW_SIM(test_bench_sim, max_cycles, "Clk", "Clk2", "Clk4", "Data_in", "Enable", "Data_Out");
+    NEW_TRACE(test_bench_sim, max_cycles);
+
+    SIMULATE(16) {
+        PROCESS(clock);
+        
+        LOAD(reg8.data_in, test_bench_sim_trace[0]);
+        LOAD(reg8.enable , test_bench_sim_trace[1]);
+        reg8.clk = clock.clock;
+        PROCESS(reg8);
+
+        clock2.data_in = clock.clock ^ clock2.data_out;
+        clock2.enable  = clock.clock;
+        clock2.clk     = clock.clock;
+        PROCESS(clock2);        
+
+        clock4.data_in = clock2.data_out ^ clock4.data_out;
+        clock4.enable  = clock.clock;
+        clock4.clk     = clock.clock;
+        PROCESS(clock4);
+
+        PLOT(test_bench_sim[0], clock.clock);
+        PLOT(test_bench_sim[1], clock2.data_out);
+        PLOT(test_bench_sim[2], clock4.data_out);
+        PLOT(test_bench_sim[3], reg8.data_in);
+        PLOT(test_bench_sim[4], reg8.enable);
+        PLOT(test_bench_sim[5], reg8.data_out);
     }
 
-    GRAPH(debounced_d_latch_sim, 64);
-    // SAVE(full_adder_0_sim, max_run_length);
-}
-
-TEST_BENCH(double_debounced_clock_bench) {
-    CLOCK_t   clock     = CLOCK();
-    D_LATCH_t d_latch_0 = D_LATCH();
-    D_LATCH_t d_latch_1 = D_LATCH();
-
-    RUN_LENGTH(max_run_length, 64);
-    NEW_SIM   (double_debounced_d_latch_sim, max_run_length, "Clock", "Data0", "Enable0", "Q0", "Q_inv0", "Data1", "Enable1", "Q1", "Q_inv1");
-
-    SIMULATE(64) {
-        PROCESS(clock);
-
-        d_latch_0.data  =clock.clock;
-        d_latch_0.enable=clock.clock;
-
-        d_latch_1.data  =d_latch_0.data;
-        d_latch_1.enable=d_latch_0.enable;
-        
-        PROCESS(d_latch_0);
-        PROCESS(d_latch_1);
-        
-        PLOT(double_debounced_d_latch_sim[0], clock.clock);
-
-        PLOT(double_debounced_d_latch_sim[1], d_latch_0.data);
-        PLOT(double_debounced_d_latch_sim[2], d_latch_0.enable);
-        PLOT(double_debounced_d_latch_sim[3], d_latch_0.q);
-        PLOT(double_debounced_d_latch_sim[4], d_latch_0.q_inv);
-        
-        PLOT(double_debounced_d_latch_sim[5], d_latch_1.data);
-        PLOT(double_debounced_d_latch_sim[6], d_latch_1.enable);
-        PLOT(double_debounced_d_latch_sim[7], d_latch_1.q);
-        PLOT(double_debounced_d_latch_sim[8], d_latch_1.q_inv);
-    }
-
-    GRAPH(double_debounced_d_latch_sim, 64);
-    // SAVE(full_adder_0_sim, max_run_length);
-}
-
-TEST_BENCH(double_debounced_clock_bench_v2) {
-    CLOCK_t   clock   = CLOCK();
-    DOUBLE_D_LATCH_t dd_latch = DOUBLE_D_LATCH();
-
-    RUN_LENGTH(max_run_length, 64);
-    NEW_SIM   (debounced_dd_latch_sim, max_run_length, "Clock", "Data", "Enable", "Q", "Q_inv");
-
-    SIMULATE(64) {
-        PROCESS(clock);
-
-        dd_latch.data=clock.clock;
-        dd_latch.enable=clock.clock;
-
-        PROCESS(dd_latch);
-        
-        PLOT(debounced_dd_latch_sim[0], clock.clock);
-        PLOT(debounced_dd_latch_sim[1], dd_latch.data);
-        PLOT(debounced_dd_latch_sim[2], dd_latch.enable);
-        PLOT(debounced_dd_latch_sim[3], dd_latch.q);
-        PLOT(debounced_dd_latch_sim[4], dd_latch.q_inv);
-    }
-
-    GRAPH(debounced_dd_latch_sim, 64);
-    // SAVE(full_adder_0_sim, max_run_length);
+    GRAPH(test_bench_sim, 16, "%02X", "", 2);
 }
 
 int main(int argc, char** argv) {
-    
-    // sr_latch_bench("traces/sr_latch.txt");
-    d_latch_bench ("traces/d_latch.txt" );
-    debounced_clock_bench(NULL);
-    double_debounced_clock_bench(NULL);
-    double_debounced_clock_bench_v2(NULL);
 
-    // clock_bench(NULL);
-
-    // full_adder_0_test_bench("traces/sim0.txt");
-    // full_adder_0_test_bench("traces/sim1.txt");
+    test_bench("traces/reg8.txt");
 
     return 0;
 }

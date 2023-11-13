@@ -10,7 +10,7 @@ TEST_BENCH(full_adder_0_test_bench) {
     NEW_SIM   (full_adder_0_sim, max_run_length, "A", "B", "Ci", "S", "Co");
     NEW_TRACE (full_adder_0_sim, max_run_length);
 
-    SIMULATE(max_run_length) {
+    SIMULATE(8) {
         LOAD(full_adder_0.a   , full_adder_0_sim_trace[0]);
         LOAD(full_adder_0.b   , full_adder_0_sim_trace[1]);
         LOAD(full_adder_0.c_in, full_adder_0_sim_trace[2]);
@@ -24,6 +24,6 @@ TEST_BENCH(full_adder_0_test_bench) {
         PLOT(full_adder_0_sim[4], full_adder_0.c_out);
     }
 
-    GRAPH(full_adder_0_sim, max_run_length);
+    GRAPH(full_adder_0_sim, 8, "%c", "", 1);
     // SAVE(full_adder_0_sim, max_run_length);
 }

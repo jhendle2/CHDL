@@ -21,30 +21,41 @@ static inline char simPrintChar(const uint sim_value) {
     }
 }
 
-static inline void simPrint(FILE* fp, const uint sim_value) {
-    fprintf(fp, "%c", simPrintChar(sim_value));
+static inline void simPrint(FILE* fp, const uint sim_value, const char* fmt, const char* delim, const size_t fmt_len) {
+    // fprintf(fp, "%c", simPrintChar(sim_value));
 
     // if (sim_value == 0) fprintf(fp, "..|");
     // else fprintf(fp, "%02x|", sim_value);
+
+    if (fmt_len == 1) {
+        if (sim_value == 0) fprintf(fp, ".%s", delim);
+        else                fprintf(fp, "%c%s", simPrintChar(sim_value), delim);
+    }
+    else {
+        if (sim_value == 0) for (uint i = 0; i<fmt_len; i++) putc('.', fp);
+        else fprintf(fp, fmt, sim_value);
+        // fprintf(fp, fmt, sim_value);
+        fprintf(fp, "%s", delim);
+    }
 }
 
-#define OUTPLOT_HELPER(NAME, LENGTH, FP) \
+#define OUTPLOT_HELPER(NAME, LENGTH, FP, FMT, DELIM, FMT_LEN) \
     fprintf(FP, "[%s]\n", TRACE_PATH);\
     for (uint _field_i = 0; _field_i < 64; _field_i++) {\
         if (CAT(NAME,_labels)[_field_i][0]==0) break;\
         fprintf(FP, "%-8s: ", CAT(NAME,_labels)[_field_i]);\
         for (SimTime CLK = 0; CLK<LENGTH; CLK++) {\
-            simPrint(FP, NAME[_field_i][CLK]);\
+            simPrint(FP, NAME[_field_i][CLK], FMT, DELIM, FMT_LEN);\
         } fprintf(FP, "\n");\
     } fprintf(FP, "\n");
 
-#define GRAPH(NAME, LENGTH) OUTPLOT_HELPER(NAME, LENGTH, stdout)
+#define GRAPH(NAME, LENGTH, FMT, DELIM, FMT_LEN) OUTPLOT_HELPER(NAME, LENGTH, stdout, FMT, DELIM, FMT_LEN)
 
-#define SAVE(NAME, LENGTH) {\
+#define SAVE(NAME, LENGTH, FMT, DELIM, FMT_LEN) {\
     char save_path[128];\
     sprintf(save_path, "%s.stdout", TRACE_PATH);\
     FILE* save_fp = fopen(save_path, "w");\
-    OUTPLOT_HELPER(NAME, LENGTH, save_fp);\
+    OUTPLOT_HELPER(NAME, LENGTH, save_fp, FMT, DELIM, FMT_LEN);\
     if (save_fp) fclose(save_fp);\
 }
 
@@ -81,7 +92,12 @@ static inline SimTime load_from_trace(uint trace_array[64][64], const char* trac
         char* tok = strtok(buf, ",");
         uint field_index = 0;
         while (tok) {
-            trace_array[field_index++][clk] = atoi(tok);
+            if (tok[0]=='0' && tok[1]=='x') {
+                trace_array[field_index++][clk] = strtol(tok+2, NULL, 16);
+            }
+            else {
+                trace_array[field_index++][clk] = atoi(tok);
+            }
             tok = strtok(NULL, ",");
         }
         clk++;
@@ -90,5 +106,7 @@ static inline SimTime load_from_trace(uint trace_array[64][64], const char* trac
     fclose(trace_fp);
     return clk;
 }
+
+#define cycles
 
 #endif /* SIM_H */

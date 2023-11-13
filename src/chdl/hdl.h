@@ -15,8 +15,13 @@ typedef unsigned int uint;
 #define HIGH     1
 #define UNDEF    2
 #define DONTCARE 3
+
 typedef uint Bit_t;
 #define NEW_BIT(NAME) Bit_t NAME: 2
+typedef uint Nibl_t;
+#define NEW_NIBL(NAME) Nibl_t NAME: 4
+typedef uint Byte_t;
+#define NEW_BYTE(NAME) Byte_t NAME: 8
 
 static inline Bit_t assignBitFromUint(const uint U) {
     switch (U) {
@@ -30,20 +35,12 @@ static inline Bit_t assignBitFromUint(const uint U) {
 typedef unsigned long long GateFields;
 #define GATE_FIELDS GateFields _fields: 64
 
-typedef struct gate_s {
-    GATE_FIELDS;
+// typedef struct gate_s {
+//     GATE_FIELDS;
 
-    void (*process)(struct gate_s* self);
-    void (*print  )(const struct gate_s* self);
-} Gate_t;
-static inline void process(void* gate) {
-    Gate_t* gate_ptr = gate;
-    gate_ptr->process(gate_ptr);
-}
-static inline void print(void* gate) {
-    Gate_t* gate_ptr = gate;
-    gate_ptr->print(gate_ptr);
-}
+//     void (*process)(struct gate_s* self);
+//     void (*print  )(const struct gate_s* self);
+// } Gate_t;
 
 #define STRUCT_FIELDS(FIELD_LIST) \
     union {\
@@ -109,10 +106,15 @@ static inline void print(void* gate) {
 // #define INPUTS
 // #define OUTPUTS
 
-#define PROCESS(G) process(&G)
+// #define PROCESS(G) process(&G)
+#define PROCESS(G) G.process(&G)
+/* #define PRINT(G)   {\
+//     printf("%s ", QUOTE(G));\
+//     print(&G);\
+// } */
 #define PRINT(G)   {\
     printf("%s ", QUOTE(G));\
-    print(&G);\
+    G.print(&G);\
 }
 
 static inline Bit_t NOT(const Bit_t bit) {
